@@ -11,6 +11,9 @@ public class Contact {
     private SubscriptionType subscriptionType;
     private String profileImagePath;
     private int persistID;
+    boolean  pendingTo;
+    boolean pendingFrom;
+    boolean onlineStatus;
 
 
     public static final String TABLE_NAME = "contacts";//For use in persistance
@@ -21,15 +24,28 @@ public class Contact {
         public static final String CONTACT_JID = "jid";
         public static final String SUBSCRIPTION_TYPE = "subscriptionType";
         public static final String PROFILE_IMAGE_PATH = "profileImagePath";
+
+        public static final String PENDING_STATUS_TO = "pendingTo";
+        public static final String PENDING_STATUS_FROM = "pendingFrom";
+        public static final String ONLINE_STATUS = "onlineStatus";
     }
 
     public ContentValues getContentValues()
     {
         ContentValues values = new ContentValues();
         //CONTACT_UNIQUE_ID is auto-filled
+        //Sqlite doesn't have a boolean data type. We turn boolean into integers before db write
+        int pendingFromInt = (pendingFrom)? 1 : 0;
+        int pendingToInt = (pendingTo)? 1 : 0;
+        int onlineStatusInt = (onlineStatus)? 1 : 0;
+
         values.put(Cols.CONTACT_JID, jid);
         values.put(Cols.SUBSCRIPTION_TYPE,getTypeStringValue(subscriptionType));
         values.put(Cols.PROFILE_IMAGE_PATH,profileImagePath);
+
+        values.put(Cols.PENDING_STATUS_FROM, pendingFromInt);
+        values.put(Cols.PENDING_STATUS_TO,pendingToInt);
+        values.put(Cols.ONLINE_STATUS,onlineStatusInt);
 
         return values;
 
@@ -37,49 +53,31 @@ public class Contact {
 
     public String getTypeStringValue(SubscriptionType type)
     {
-        if(type== SubscriptionType.NONE_NONE)
-            return "NONE_NONE";
-        else if(type == SubscriptionType.NONE_PENDING)
-            return "NONE_PENDING";
-        else if(type == SubscriptionType.NONE_TO)
-            return "NONE_TO";
-        else if(type == SubscriptionType.PENDING_NONE)
-            return "PENDING_NONE";
-        else if(type == SubscriptionType.PENDING_PENDING)
-            return "PENDING_PENDING";
-        else if(type == SubscriptionType.PENDING_TO)
-            return "PENDING_TO";
-        else if(type == SubscriptionType.FROM_NONE)
-            return "FROM_NONE";
-        else if(type == SubscriptionType.FROM_PENDING)
-            return "FROM_PENDING";
-        else if(type == SubscriptionType.FROM_TO)
-            return "FROM_TO";
+        if(type== SubscriptionType.FROM)
+            return "FROM";
+        else if(type == SubscriptionType.TO)
+            return "TO";
+        else if(type == SubscriptionType.BOTH)
+            return "BOTH";
+        else if(type == SubscriptionType.NONE)
+            return "NONE";
         else
             return "INDETERMINATE";
     }
 
 
     public enum SubscriptionType{
-        //Subscription type should catter for the from and to channels. We should simultaneously know the FROM and TO subscription information
-        //FROM  - TO
-        NONE_NONE,//No presence subscription
-        NONE_PENDING,
-        NONE_TO,
-
-        PENDING_NONE,
-        PENDING_PENDING,
-        PENDING_TO,
-
-        FROM_NONE,
-        FROM_PENDING,
-        FROM_TO
+        NONE,FROM,TO,BOTH
     }
 
     public Contact(String jid, SubscriptionType subscriptionType) {
         this.jid = jid;
         this.subscriptionType = subscriptionType;
         this.profileImagePath = "NONE";
+
+        this.pendingFrom = false;
+        this.pendingTo = false;
+        this.onlineStatus = false;
     }
 
     public String getJid() {
@@ -112,5 +110,29 @@ public class Contact {
 
     public void setPersistID(int persistID) {
         this.persistID = persistID;
+    }
+
+    public boolean isPendingTo() {
+        return pendingTo;
+    }
+
+    public void setPendingTo(boolean pendingTo) {
+        this.pendingTo = pendingTo;
+    }
+
+    public boolean isPendingFrom() {
+        return pendingFrom;
+    }
+
+    public void setPendingFrom(boolean pendingFrom) {
+        this.pendingFrom = pendingFrom;
+    }
+
+    public boolean isOnlineStatus() {
+        return onlineStatus;
+    }
+
+    public void setOnlineStatus(boolean onlineStatus) {
+        this.onlineStatus = onlineStatus;
     }
 }

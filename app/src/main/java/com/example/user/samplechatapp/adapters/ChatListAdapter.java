@@ -25,11 +25,11 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatHolder> {
     private static final String LOGTAG ="ChatListAdapter";
 
     public interface OnItemClickListener {
-        public void onItemClick(String contactJid);
+        public void onItemClick(String contactJid,Chat.ContactType chatType);
     }
 
     public interface OnItemLongClickListener{
-        public void onItemLongClick(String contactJid, int chatUniqueId, View anchor);
+        public void onItemLongClick(String contactJid,int chatUniqueId ,View anchor);
     }
 
 
@@ -101,7 +101,7 @@ class ChatHolder extends RecyclerView.ViewHolder{
     private ChatListAdapter mChatListAdapter;
 
 
-    public ChatHolder(final View itemView , ChatListAdapter adapter) {
+    public ChatHolder(final  View itemView ,ChatListAdapter adapter) {
         super(itemView);
 
         contactTextView = (TextView) itemView.findViewById(R.id.contact_jid);
@@ -118,7 +118,7 @@ class ChatHolder extends RecyclerView.ViewHolder{
 
                 if ( listener!= null)
                 {
-                    listener.onItemClick(contactTextView.getText().toString());
+                    listener.onItemClick(contactTextView.getText().toString(),mChat.getContactType());
 
                 }
 

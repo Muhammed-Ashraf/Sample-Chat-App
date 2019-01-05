@@ -1,9 +1,9 @@
-package com.blikoon.roosterplus;
+package com.example.user.samplechatapp.activity;
 
 import android.content.Context;
 import android.content.Intent;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.CheckBox;
@@ -11,9 +11,10 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.blikoon.roosterplus.model.Contact;
-import com.blikoon.roosterplus.model.ContactModel;
-import com.blikoon.roosterplus.xmpp.RoosterConnectionService;
+import com.example.user.samplechatapp.R;
+import com.example.user.samplechatapp.model.Contact;
+import com.example.user.samplechatapp.model.ContactModel;
+import com.example.user.samplechatapp.xmpp.SampleChatConnectionService;
 
 public class ContactDetailsActivity extends AppCompatActivity {
     private static final String LOGTAG = "ContactDetailsActivity" ;
@@ -53,7 +54,7 @@ public class ContactDetailsActivity extends AppCompatActivity {
                 {
                     //Send unsubscribed to cancel subscription
                     Log.d(LOGTAG,"The FROM checkbox is UNchecked");
-                    if(RoosterConnectionService.getConnection().unsubscribed(contactJid))
+                    if(SampleChatConnectionService.getConnection().unsubscribed(contactJid))
                     {
                         Toast.makeText(mApplicationContext,"Successfully Stopped sending presence updates to "+ contactJid,Toast.LENGTH_LONG).show();
                     }
@@ -71,7 +72,7 @@ public class ContactDetailsActivity extends AppCompatActivity {
                 {
                     //Send subscription request
                     Log.d(LOGTAG,"The TO checkbox is checked");
-                    if(RoosterConnectionService.getConnection().subscribe(contactJid))
+                    if(SampleChatConnectionService.getConnection().subscribe(contactJid))
                     {
                         Toast.makeText(mApplicationContext,"Subscription request sent to  "+ contactJid,Toast.LENGTH_LONG).show();
                     }
@@ -79,7 +80,7 @@ public class ContactDetailsActivity extends AppCompatActivity {
                 {
                     //Send them an unsubscribe
                     Log.d(LOGTAG,"The TO checkbox is UNchecked");
-                    if(RoosterConnectionService.getConnection().unsubscribe(contactJid))
+                    if(SampleChatConnectionService.getConnection().unsubscribe(contactJid))
                     {
                         Toast.makeText(mApplicationContext,"You successfuly stopped getting presence updates from  "+ contactJid,Toast.LENGTH_LONG).show();
                     }

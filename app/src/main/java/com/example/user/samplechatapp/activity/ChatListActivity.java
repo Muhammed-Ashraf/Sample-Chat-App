@@ -1,7 +1,10 @@
 package com.example.user.samplechatapp.activity;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
@@ -24,7 +27,9 @@ import android.widget.Toast;
 
 import com.example.user.samplechatapp.R;
 import com.example.user.samplechatapp.adapters.ChatListAdapter;
+import com.example.user.samplechatapp.model.Chat;
 import com.example.user.samplechatapp.model.ChatModel;
+import com.example.user.samplechatapp.util.Constants;
 import com.example.user.samplechatapp.util.Utilities;
 import com.example.user.samplechatapp.xmpp.SampleChatConnectionService;
 
@@ -36,6 +41,7 @@ public class ChatListActivity extends AppCompatActivity implements ChatListAdapt
     private FloatingActionButton newConversationButton;
     protected static final int REQUEST_EXCEMPT_OP = 188;
     ChatListAdapter mAdapter;
+    private BroadcastReceiver mBroadcastReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -180,6 +186,33 @@ public class ChatListActivity extends AppCompatActivity implements ChatListAdapt
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        unregisterReceiver(mBroadcastReceiver);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mBroadcastReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                String action = intent.getAction();
+                switch (action)
+                {
+                    case Constants.BroadCastMessages.UI_NEW_CHAT_ITEM:
+                        mAdapter.onChatCountChange();
+                        return;
+                }
+
+            }
+        };
+
+        IntentFilter filter = new IntentFilter(Constants.BroadCastMessages.UI_NEW_CHAT_ITEM);
+        registerReceiver(mBroadcastReceiver,filter);
+    }
+
+    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.activity_me_menu, menu);
@@ -197,15 +230,16 @@ public class ChatListActivity extends AppCompatActivity implements ChatListAdapt
     }
 
     @Override
-    public void onItemClick(String contactJid) {
+    public void onItemClick(String contactJid ,Chat.ContactType chatType) {
 
         Intent i = new Intent(ChatListActivity.this,ChatViewActivity.class);
         i.putExtra("contact_jid",contactJid);
+        i.putExtra("chat_type",chatType);
         startActivity(i);
     }
 
     @Override
-    public void onItemLongClick(final String contactJid, final int chatUniqueId, View anchor) {
+    public void onItemLongClick(final String contactJid,final int chatUniqueId, View anchor) {
 
         PopupMenu popup = new PopupMenu(ChatListActivity.this,anchor, Gravity.CENTER);
         //Inflating the Popup using xml file
@@ -237,4 +271,6 @@ public class ChatListActivity extends AppCompatActivity implements ChatListAdapt
         popup.show();
 
     }
+
+
 }

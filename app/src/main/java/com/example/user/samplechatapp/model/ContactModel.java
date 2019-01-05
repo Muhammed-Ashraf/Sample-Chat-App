@@ -60,6 +60,45 @@ public class ContactModel {
         return contacts;
     }
 
+    public Contact getContactByJidString(String jidString)
+    {
+        List<Contact> contacts = getContacts();
+        List<String> stringJids = new ArrayList<>();
+
+        Contact mContact = null;
+
+        Log.d(LOGTAG,"Looping around contacts============");
+
+        for(Contact contact :contacts)
+        {
+            Log.d(LOGTAG,"Contact Jid :"+contact.getJid());
+            Log.d(LOGTAG,"Subscription type :"+ contact.getTypeStringValue(contact.getSubscriptionType()));
+            if(contact.getJid().equals(jidString))
+            {
+                mContact = contact;
+            }
+        }
+        return mContact;
+    }
+
+    public List<String> getContactsJidStrings()
+    {
+        List<Contact> contacts = getContacts();
+        List<String> stringJids = new ArrayList<>();
+        for(Contact contact :contacts)
+        {
+            Log.d(LOGTAG,"Contact Jid :"+contact.getJid());
+            stringJids.add(contact.getJid());
+        }
+        return stringJids;
+    }
+
+    public boolean isContactStranger(String contactJid)
+    {
+        List<String> contacts = getContactsJidStrings();
+        return !contacts.contains(contactJid);
+    }
+
     private ContactCursorWrapper queryContacts(String whereClause , String[] whereArgs)
     {
         Cursor cursor = mDatabase.query(
@@ -87,6 +126,35 @@ public class ContactModel {
             return true;
         }
     }
+
+    public boolean updateContactSubscription(Contact contact)
+    {
+        Contact mContact = contact;
+        String jidString = contact.getJid();
+
+        //Get new contentvalues to add to db
+        ContentValues values = contact.getContentValues();
+        //db.update returns the number of affected rows in the db, if this return value is not zero, we succeeded
+
+        int rows = mDatabase.update(Contact.TABLE_NAME, values, "jid = ? ", new String[] { jidString } );
+        Log.d(LOGTAG,rows + " rows affected in db");
+
+        if( rows != 0)
+        {
+            Log.d(LOGTAG,"DB record update successful ");
+            return true;
+        }
+        return false;
+    }
+    /** Subscription changes to FROM in the FROM direction */
+    public void updateContactSubscriptionOnSendSubscribed(String contact)
+    {
+        //When we send a subscribed, the pending_from changes to from
+        Contact mContact = getContactByJidString(contact);
+        mContact.setPendingFrom(false);
+        updateContactSubscription(mContact);
+    }
+
 
     public boolean deleteContact(Contact c)
     {

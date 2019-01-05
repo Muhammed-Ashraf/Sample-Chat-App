@@ -25,6 +25,7 @@ import com.example.user.samplechatapp.model.ChatModel;
 import com.example.user.samplechatapp.model.Contact;
 import com.example.user.samplechatapp.model.ContactModel;
 import com.example.user.samplechatapp.util.Utilities;
+import com.example.user.samplechatapp.xmpp.SampleChatConnectionService;
 
 import java.util.List;
 
@@ -76,7 +77,7 @@ public class ContactListActivity extends AppCompatActivity implements ContactLis
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 Log.d(LOGTAG,"User clicked on OK");
-                if(ContactModel.get(getApplicationContext()).addContact(new Contact(input.getText().toString(), Contact.SubscriptionType.NONE_NONE)))
+                if(ContactModel.get(getApplicationContext()).addContact(new Contact(input.getText().toString(), Contact.SubscriptionType.NONE)))
                 {
                     mAdapter.onContactCountChange();
                     Log.d(LOGTAG,"Contact added successfully");
@@ -113,7 +114,7 @@ public class ContactListActivity extends AppCompatActivity implements ContactLis
             Chat chat = new Chat(contactJid,"",Chat.ContactType.ONE_ON_ONE,System.currentTimeMillis(),0);
             ChatModel.get(getApplicationContext()).addChat(chat);
 
-//            Inside here we start the chat activity
+            //Inside here we start the chat activity
             Intent intent = new Intent(ContactListActivity.this
                     ,ChatViewActivity.class);
             intent.putExtra("contact_jid",contactJid);
@@ -154,20 +155,23 @@ public class ContactListActivity extends AppCompatActivity implements ContactLis
                         if(ContactModel.get(getApplicationContext()).deleteContact(uniqueId) )
                         {
                             mAdapter.onContactCountChange();
-                            Toast.makeText(
-                                    ContactListActivity.this,
-                                    "Contact deleted successfully ",
-                                    Toast.LENGTH_SHORT
-                            ).show();
+                            if(SampleChatConnectionService.getConnection().removeRosterEntry(contactJid))
+                            {
+                                Log.d(LOGTAG,contactJid + "Successfully deleted from Roster");
+                                Toast.makeText(
+                                        ContactListActivity.this,
+                                        "Contact deleted successfully ",
+                                        Toast.LENGTH_SHORT
+                                ).show();
+                            }
+
                         }
                         break;
 
                     case R.id.contact_details:
-                        Toast.makeText(
-                                ContactListActivity.this,
-                                "You Long Clicked to see : " + contactJid + " 's contact details :",
-                                Toast.LENGTH_SHORT
-                        ).show();
+                        Intent i = new Intent(ContactListActivity.this,ContactDetailsActivity.class);
+                        i.putExtra("contact_jid",contactJid);
+                        startActivity(i);
                         return true;
                 }
                 return true;

@@ -100,11 +100,15 @@ public class Chat {
     {
         if(type== ContactType.ONE_ON_ONE)
             return "ONE_ON_ONE";
-        else
+        else if(type == ContactType.GROUP)
             return "GROUP";
+        else if(type == ContactType.STRANGER)
+            return "STRANGER";
+        else
+            return null;
     }
 
     public enum ContactType{
-        ONE_ON_ONE,GROUP
+        ONE_ON_ONE,GROUP,STRANGER
     }
 }

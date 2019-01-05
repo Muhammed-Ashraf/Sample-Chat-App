@@ -39,5 +39,8 @@
             android:name=".activity.MeActivity"
             android:label="@string/title_me_activity"
             android:parentActivityName=".activity.ChatListActivity" />
+
+        <activity android:name=".activity.ContactDetailsActivity"
+            android:parentActivityName=".activity.ContactListActivity"></activity>
     </application>
 </manifest>

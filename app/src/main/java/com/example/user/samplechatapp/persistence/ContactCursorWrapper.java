@@ -27,34 +27,29 @@ public class ContactCursorWrapper extends CursorWrapper {
         int contactUniqueId = getInt(getColumnIndex(Contact.Cols.CONTACT_UNIQUE_ID));
         String profileImagePath = getString(getColumnIndex(Contact.Cols.PROFILE_IMAGE_PATH));
 
+        int pendingFromInt = getInt(getColumnIndex(Contact.Cols.PENDING_STATUS_FROM));
+        int pendingToInt = getInt(getColumnIndex(Contact.Cols.PENDING_STATUS_TO));
+        int onlineStatusInt = getInt(getColumnIndex(Contact.Cols.ONLINE_STATUS));
+
 
         Contact.SubscriptionType subscriptionType = null;
 
-        if (subscriptionTypeString.equals("NONE_NONE")) {
-            subscriptionType = Contact.SubscriptionType.NONE_NONE;
-        } else if (subscriptionTypeString.equals("NONE_PENDING")) {
-            subscriptionType = Contact.SubscriptionType.NONE_PENDING;
-        } else if (subscriptionTypeString.equals("NONE_TO")) {
-            subscriptionType = Contact.SubscriptionType.NONE_TO;
-        } else if (subscriptionTypeString.equals("PENDING_NONE")) {
-            subscriptionType = Contact.SubscriptionType.PENDING_NONE;
-        }else if (subscriptionTypeString.equals("PENDING_PENDING")) {
-            subscriptionType = Contact.SubscriptionType.PENDING_PENDING;
-        } else if (subscriptionTypeString.equals("PENDING_TO")) {
-            subscriptionType = Contact.SubscriptionType.PENDING_TO;
-        }
-
-        else if (subscriptionTypeString.equals("FROM_NONE")) {
-            subscriptionType = Contact.SubscriptionType.FROM_NONE;
-        }else if (subscriptionTypeString.equals("FROM_PENDING")) {
-            subscriptionType = Contact.SubscriptionType.FROM_PENDING;
-        } else if (subscriptionTypeString.equals("FROM_TO")) {
-            subscriptionType = Contact.SubscriptionType.FROM_TO;
+        if (subscriptionTypeString.equals("NONE")) {
+            subscriptionType = Contact.SubscriptionType.NONE;
+        } else if (subscriptionTypeString.equals("FROM")) {
+            subscriptionType = Contact.SubscriptionType.FROM;
+        } else if (subscriptionTypeString.equals("TO")) {
+            subscriptionType = Contact.SubscriptionType.TO;
+        } else if (subscriptionTypeString.equals("BOTH")) {
+            subscriptionType = Contact.SubscriptionType.BOTH;
         }
 
         Contact contact = new Contact(jid, subscriptionType);
         contact.setPersistID(contactUniqueId);
         contact.setProfileImagePath(profileImagePath);
+        contact.setPendingFrom((pendingFromInt == 0) ? false:true);
+        contact.setPendingTo((pendingToInt == 0)? false:true);
+        contact.setOnlineStatus((onlineStatusInt == 0) ? false:true);
         return contact;
     }
 }

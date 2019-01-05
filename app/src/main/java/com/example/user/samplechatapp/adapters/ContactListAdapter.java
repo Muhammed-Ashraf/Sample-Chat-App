@@ -23,11 +23,11 @@ import java.util.List;
 public class ContactListAdapter extends RecyclerView.Adapter<ContactHolder> {
 
     public interface OnItemClickListener {
-        public void onItemClick(String contactJid);
+        public void onItemClick(String contactJid );
     }
 
     public interface OnItemLongClickListener{
-        public void onItemLongClick(int uniqueId, String contactJid, View anchor);
+        public void onItemLongClick(int uniqueId, String contactJid ,View anchor);
     }
 
     private List<Contact> mContacts;
@@ -96,7 +96,7 @@ class ContactHolder extends RecyclerView.ViewHolder {
     private ContactListAdapter mAdapter;
     private static final String LOGTAG = "ContactHolder";
 
-    public ContactHolder(final View itemView , ContactListAdapter adapter) {
+    public ContactHolder(final  View itemView , ContactListAdapter adapter) {
         super(itemView);
         mAdapter = adapter;
         jidTexView = (TextView) itemView.findViewById(R.id.contact_jid_string);
@@ -141,7 +141,7 @@ class ContactHolder extends RecyclerView.ViewHolder {
             return;
         }
         jidTexView.setText(mContact.getJid());
-        subscriptionTypeTextView.setText("NONE_NONE");
+        subscriptionTypeTextView.setText(mContact.getTypeStringValue(mContact.getSubscriptionType()));
         profile_image.setImageResource(R.drawable.ic_profile);
 
     }

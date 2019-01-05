@@ -67,7 +67,7 @@ public class ChatModel {
     {
         List<Chat> chats = new ArrayList<>();
 
-        ChatCursorWrapper cursor = queryChats(Chat.Cols.CONTACT_JID + "= ?",new String[] {jid});
+        ChatCursorWrapper cursor = queryChats(Chat.Cols.CONTACT_JID + "= ?",new String [] {jid});
 
         try
         {
@@ -101,7 +101,7 @@ public class ChatModel {
 
     public boolean updateLastMessageDetails(ChatMessage chatMessage)
     {
-        List<Chat> chats = getChatsByJid(chatMessage.getContactJid());
+        List<Chat>  chats = getChatsByJid(chatMessage.getContactJid());
         if( !chats.isEmpty())
         {
             Chat chat = chats.get(0);
@@ -148,7 +148,7 @@ public class ChatModel {
         }
     }
 
-    private ChatCursorWrapper queryChats(String whereClause , String[] whereArgs)
+    private ChatCursorWrapper queryChats(String whereClause , String [] whereArgs)
     {
         Cursor cursor = mDatabase.query(
                 Chat.TABLE_NAME,

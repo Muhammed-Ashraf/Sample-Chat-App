@@ -19,7 +19,7 @@ public class DatabaseBackend extends SQLiteOpenHelper {
     private static final String LOGTAG = "DatabaseBackend";
     private static DatabaseBackend instance = null;
     private static final String DATABASE_NAME = "roosterPlus_db";
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
     /**
      *  Version 1 :
      *      - Creates chatList , contactList and ChatMessageList tables;
@@ -41,7 +41,10 @@ public class DatabaseBackend extends SQLiteOpenHelper {
             + Contact.TABLE_NAME + "("
             + Contact.Cols.CONTACT_UNIQUE_ID +" INTEGER PRIMARY KEY AUTOINCREMENT,"
             + Contact.Cols.SUBSCRIPTION_TYPE + " TEXT, " + Contact.Cols.CONTACT_JID + " TEXT,"
-            + Contact.Cols.PROFILE_IMAGE_PATH + " TEXT"
+            + Contact.Cols.PROFILE_IMAGE_PATH + " TEXT,"
+            + Contact.Cols.PENDING_STATUS_FROM + " NUMBER DEFAULT 0,"
+            + Contact.Cols.PENDING_STATUS_TO + " NUMBER DEFAULT 0,"
+            + Contact.Cols.ONLINE_STATUS + " NUMBER DEFAULT 0"
             + ");";
 
     //Create Chat Message List Table
@@ -77,6 +80,15 @@ public class DatabaseBackend extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        if (oldVersion < 2 && newVersion >= 2) {
+            Log.d(LOGTAG,"Upgrading db to version 2....");
+            db.execSQL("ALTER TABLE " + Contact.TABLE_NAME + " ADD COLUMN "
+                    + Contact.Cols.PENDING_STATUS_TO + " NUMBER DEFAULT 0");
+            db.execSQL("ALTER TABLE " + Contact.TABLE_NAME + " ADD COLUMN "
+                    + Contact.Cols.PENDING_STATUS_FROM + " NUMBER DEFAULT 0");
+            db.execSQL("ALTER TABLE " + Contact.TABLE_NAME + " ADD COLUMN "
+                    + Contact.Cols.ONLINE_STATUS + " NUMBER DEFAULT 0");
+        }
 
     }
 }
