@@ -25,6 +25,7 @@ import android.widget.TextView;
 
 import com.example.user.samplechatapp.R;
 import com.example.user.samplechatapp.util.Constants;
+import com.example.user.samplechatapp.util.Utilities;
 import com.example.user.samplechatapp.xmpp.SampleChatConnectionService;
 
 
@@ -77,6 +78,19 @@ public class LoginActivity extends AppCompatActivity {
 
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
+
+        boolean logged_in_state = PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
+                .getBoolean("xmpp_logged_in",false);
+        if(logged_in_state)
+        {
+            Log.d(LOGTAG,"Logged in state :"+ logged_in_state );
+            Intent i1 = new Intent(this, SampleChatConnectionService.class);
+            startService(i1);
+
+            Intent i = new Intent(LoginActivity.this,ChatListActivity.class);
+            startActivity(i);
+            finish();
+        }
     }
 
 

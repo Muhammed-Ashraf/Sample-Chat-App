@@ -1,5 +1,6 @@
 package com.example.user.samplechatapp.activity;
 
+import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -29,6 +30,7 @@ import com.example.user.samplechatapp.R;
 import com.example.user.samplechatapp.adapters.ChatListAdapter;
 import com.example.user.samplechatapp.model.Chat;
 import com.example.user.samplechatapp.model.ChatModel;
+import com.example.user.samplechatapp.service.SensorService;
 import com.example.user.samplechatapp.util.Constants;
 import com.example.user.samplechatapp.util.Utilities;
 import com.example.user.samplechatapp.xmpp.SampleChatConnectionService;
@@ -42,37 +44,30 @@ public class ChatListActivity extends AppCompatActivity implements ChatListAdapt
     protected static final int REQUEST_EXCEMPT_OP = 188;
     ChatListAdapter mAdapter;
     private BroadcastReceiver mBroadcastReceiver;
-
+    private SensorService mSensorService;
+    Intent mServiceIntent;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat_list);
 
-
-
-        boolean logged_in_state = PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
-                .getBoolean("xmpp_logged_in",false);
-        if(!logged_in_state)
+        mSensorService = new SensorService(this);
+        mServiceIntent = new Intent(this, mSensorService.getClass());
+        if (!isMyServiceRunning(mSensorService.getClass())) {
+            startService(mServiceIntent);
+        }
+        if(!Utilities.isServiceRunning(SampleChatConnectionService.class,getApplicationContext()))
         {
-            Log.d(LOGTAG,"Logged in state :"+ logged_in_state );
-            Intent i = new Intent(ChatListActivity.this,LoginActivity.class);
-            startActivity(i);
-            finish();
-        }else
-        {
-            if(!Utilities.isServiceRunning(SampleChatConnectionService.class,getApplicationContext()))
-            {
-                Log.d(LOGTAG,"Service not running, starting it ...");
-                //Start the service
-                Intent i1 = new Intent(this,SampleChatConnectionService.class);
+            Log.d(LOGTAG,"Service not running, starting it ...");
+            //Start the service
+            Intent i1 = new Intent(this,SampleChatConnectionService.class);
                 startService(i1);
 
-            }else
-            {
-                Log.d(LOGTAG ,"The service is already running.");
-            }
-
+        }else
+        {
+            Log.d(LOGTAG ,"The service is already running.");
         }
+
 
 
         chatsRecyclerView = (RecyclerView) findViewById(R.id.chatsRecyclerView);
@@ -230,6 +225,13 @@ public class ChatListActivity extends AppCompatActivity implements ChatListAdapt
     }
 
     @Override
+    protected void onDestroy() {
+        stopService(mServiceIntent);
+        Log.d("MAINACT", "onDestroy!");
+        super.onDestroy();
+    }
+
+    @Override
     public void onItemClick(String contactJid ,Chat.ContactType chatType) {
 
         Intent i = new Intent(ChatListActivity.this,ChatViewActivity.class);
@@ -272,5 +274,15 @@ public class ChatListActivity extends AppCompatActivity implements ChatListAdapt
 
     }
 
-
+    private boolean isMyServiceRunning(Class<?> serviceClass) {
+        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (serviceClass.getName().equals(service.service.getClassName())) {
+                Log.i ("isMyServiceRunning?", true+"");
+                return true;
+            }
+        }
+        Log.i ("isMyServiceRunning?", false+"");
+        return false;
+    }
 }

@@ -17,6 +17,8 @@ import com.example.user.samplechatapp.util.Utilities;
 
 import org.jivesoftware.smack.ConnectionConfiguration;
 import org.jivesoftware.smack.ConnectionListener;
+import org.jivesoftware.smack.ReconnectionListener;
+import org.jivesoftware.smack.ReconnectionManager;
 import org.jivesoftware.smack.SmackConfiguration;
 import org.jivesoftware.smack.SmackException;
 import org.jivesoftware.smack.XMPPConnection;
@@ -50,13 +52,13 @@ import static com.example.user.samplechatapp.model.Chat.ContactType.STRANGER;
  * Created by gakwaya on 2018/1/11.
  */
 
-public class SampleChatConnection implements ConnectionListener ,SubscribeListener,RosterListener {
+public class SampleChatConnection implements ConnectionListener, SubscribeListener, RosterListener, ReconnectionListener {
     private static final String LOGTAG = "RoosterConnection";
 
-    private  final Context mApplicationContext;
-    private   String mUsername;
-    private   String mPassword;
-    private   String mServiceName;
+    private final Context mApplicationContext;
+    private String mUsername;
+    private String mPassword;
+    private String mServiceName;
     private XMPPTCPConnection mConnection;
     private ConnectionState mConnectionState;
     private PingManager pingManager;
@@ -64,11 +66,8 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
     private Roster mRoster;
 
 
-
-
-    public static enum ConnectionState
-    {
-        OFFLINE,CONNECTING,ONLINE
+    public static enum ConnectionState {
+        OFFLINE, CONNECTING, ONLINE
     }
 
     public ConnectionState getmConnectionState() {
@@ -79,31 +78,27 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
         this.mConnectionState = mConnectionState;
     }
 
-    public String getConnectionStateString()
-    {
-        switch ( mConnectionState)
-        {
+    public String getConnectionStateString() {
+        switch (mConnectionState) {
             case OFFLINE:
-                return  "Offline";
+                return "Offline";
 
             case CONNECTING:
-                return  "Connecting...";
+                return "Connecting...";
 
             case ONLINE:
-                return  "Online";
+                return "Online";
 
             default:
-                return  "Offline";
+                return "Offline";
         }
 
     }
 
-    private void updateActivitiesOfConnectionStateChange( ConnectionState mConnectionState)
-    {
+    private void updateActivitiesOfConnectionStateChange(ConnectionState mConnectionState) {
         ConnectionState connectionState = mConnectionState;
         String status;
-        switch ( mConnectionState)
-        {
+        switch (mConnectionState) {
             case OFFLINE:
                 status = "Offline";
                 break;
@@ -118,19 +113,18 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
                 break;
         }
         Intent i = new Intent(Constants.BroadCastMessages.UI_CONNECTION_STATUS_CHANGE_FLAG);
-        i.putExtra(Constants.UI_CONNECTION_STATUS_CHANGE,status);
+        i.putExtra(Constants.UI_CONNECTION_STATUS_CHANGE, status);
         i.setPackage(mApplicationContext.getPackageName());
         mApplicationContext.sendBroadcast(i);
     }
 
     public SampleChatConnection(Context mApplicationContext) {
 
-        Log.d(LOGTAG,"RoosterConnection Constructor called.");
+        Log.d(LOGTAG, "RoosterConnection Constructor called.");
         this.mApplicationContext = mApplicationContext;
     }
 
-    public void connect() throws IOException,XMPPException,SmackException
-    {
+    public void connect() throws IOException, XMPPException, SmackException {
 
         mConnectionState = ConnectionState.CONNECTING;
         updateActivitiesOfConnectionStateChange(ConnectionState.CONNECTING);
@@ -159,6 +153,8 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
         mConnection.setUseStreamManagementResumption(true);
         mConnection.setPreferredResumptionTime(5);
         mConnection.addConnectionListener(this);
+        ReconnectionManager reconnectionManager = ReconnectionManager.getInstanceFor(mConnection);
+        reconnectionManager.enableAutomaticReconnection();
 
         mRoster = Roster.getInstanceFor(mConnection);
         mRoster.setSubscriptionMode(Roster.SubscriptionMode.manual);
@@ -166,39 +162,35 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
         mRoster.addRosterListener(this);
 
 
-
         chatManager = ChatManager.getInstanceFor(mConnection);
         chatManager.addIncomingListener(new IncomingChatMessageListener() {
             @Override
             public void newIncomingMessage(EntityBareJid from, Message message, Chat chat) {
-                Log.d(LOGTAG,"message.getBody() :"+message.getBody());
-                Log.d(LOGTAG,"message.getFrom() :"+message.getFrom());
+                Log.d(LOGTAG, "message.getBody() :" + message.getBody());
+                Log.d(LOGTAG, "message.getFrom() :" + message.getFrom());
 
                 String messageSource = message.getFrom().toString();
 
-                String contactJid="";
-                if ( messageSource.contains("/"))
-                {
+                String contactJid = "";
+                if (messageSource.contains("/")) {
                     contactJid = messageSource.split("/")[0];
-                    Log.d(LOGTAG,"The real jid is :" +contactJid);
-                    Log.d(LOGTAG,"The message is from :" +from);
-                }else
-                {
-                    contactJid=messageSource;
+                    Log.d(LOGTAG, "The real jid is :" + contactJid);
+                    Log.d(LOGTAG, "The message is from :" + from);
+                } else {
+                    contactJid = messageSource;
                 }
 
                 //Add message to the model
-                ChatMessagesModel.get(mApplicationContext).addMessage(new ChatMessage(message.getBody(),System.currentTimeMillis(), ChatMessage.Type.RECEIVED,contactJid));
+                ChatMessagesModel.get(mApplicationContext).addMessage(new ChatMessage(message.getBody(), System.currentTimeMillis(), ChatMessage.Type.RECEIVED, contactJid));
 
 
                 //Add Chat for Stranger if not already available
-                if ( ContactModel.get(mApplicationContext).isContactStranger(contactJid))
-                {
+                if (ContactModel.get(mApplicationContext).isContactStranger(contactJid)) {
                     List<com.example.user.samplechatapp.model.Chat> chats = ChatModel.get(mApplicationContext).getChatsByJid(contactJid);
-                    if( chats.size() == 0) {
+                    if (chats.size() == 0) {
                         Log.d(LOGTAG, contactJid + " is a new chat, adding them. With timestamp :" + Utilities.getFormattedTime(System.currentTimeMillis()));
 
-                        com.example.user.samplechatapp.model.Chat chatRooster = new  com.example.user.samplechatapp.model.Chat(contactJid, message.getBody(), com.example.user.samplechatapp.model.Chat.ContactType.ONE_ON_ONE, System.currentTimeMillis(), 0);
+                        com.example.user.samplechatapp.model.Chat chatRooster = new com.example.user.samplechatapp.model.Chat(contactJid, message.getBody(), com.example.user.samplechatapp.model.Chat.ContactType.ONE_ON_ONE, System.currentTimeMillis(), 0);
                         ChatModel.get(mApplicationContext).addChat(chatRooster);
 
                         //Notify interested activities
@@ -214,7 +206,6 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
                 mApplicationContext.sendBroadcast(intent);
 
 
-
             }
         });
 
@@ -226,7 +217,7 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
         try {
             Log.d(LOGTAG, "Calling connect() ");
             mConnection.connect();
-            mConnection.login(mUsername,mPassword);
+            mConnection.login(mUsername, mPassword);
             Log.d(LOGTAG, " login() Called ");
             syncContactListWithRemoteRoster();
         } catch (InterruptedException e) {
@@ -234,19 +225,20 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
         }
     }
 
-    /** Retrieves roster contacts from the server and syncs with the contact list saved in the db */
-    public void syncContactListWithRemoteRoster()
-    {
-        Log.d(LOGTAG,"Roster SYNCING...");
+    /**
+     * Retrieves roster contacts from the server and syncs with the contact list saved in the db
+     */
+    public void syncContactListWithRemoteRoster() {
+        Log.d(LOGTAG, "Roster SYNCING...");
         //Get roster form server
         Collection<RosterEntry> entries = getRosterEntries();
 
-        Log.d(LOGTAG,"Retrieving roster entries from server. "+entries.size() + " contacts in his roster");
+        Log.d(LOGTAG, "Retrieving roster entries from server. " + entries.size() + " contacts in his roster");
 
         for (RosterEntry entry : entries) {
-            RosterPacket.ItemType itemType=   entry.getType();
+            RosterPacket.ItemType itemType = entry.getType();
 
-            Log.d(LOGTAG,"Entry "+ entry.getJid() + " has subscription "+entry.getType());
+            Log.d(LOGTAG, "Entry " + entry.getJid() + " has subscription " + entry.getType());
 //            String stringItemType = getRosterItemTypeString(itemType);
 
             //Update data in the db
@@ -254,26 +246,22 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
             List<String> contacts = ContactModel.get(mApplicationContext).getContactsJidStrings();
 
             //Add new roster entries
-            if( (!contacts.contains(entry.getJid().toString()))
-                    && (itemType!=RosterPacket.ItemType.none))
-            {
+            if ((!contacts.contains(entry.getJid().toString()))
+                    && (itemType != RosterPacket.ItemType.none)) {
                 /* We only add contacts that we don't have already and that don't have a subscription type of none.
                  * none subscriptions add no needed information to our local contact list */
                 //Add it to the db
-                if(ContactModel.get(mApplicationContext).addContact(new Contact(entry.getJid().toString(),
-                        rosterItemTypeToContactSubscriptionType(itemType))))
-                {
-                    Log.d(LOGTAG,"New Contact "+entry.getJid().toString() +"Added successfully");
+                if (ContactModel.get(mApplicationContext).addContact(new Contact(entry.getJid().toString(),
+                        rosterItemTypeToContactSubscriptionType(itemType)))) {
+                    Log.d(LOGTAG, "New Contact " + entry.getJid().toString() + "Added successfully");
                     //mAdapter.notifyForUiUpdate();
-                }else
-                {
-                    Log.d(LOGTAG,"Could not add Contact "+entry.getJid().toString());
+                } else {
+                    Log.d(LOGTAG, "Could not add Contact " + entry.getJid().toString());
                 }
             }
 
             //Update already existing entries if necessary
-            if( (contacts.contains(entry.getJid().toString())))
-            {
+            if ((contacts.contains(entry.getJid().toString()))) {
 
                 Contact.SubscriptionType subscriptionType = rosterItemTypeToContactSubscriptionType(itemType);
                 boolean isSubscriptionPending = entry.isSubscriptionPending();
@@ -288,29 +276,25 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
     }
 
 
-    public Collection<RosterEntry> getRosterEntries()
-    {
+    public Collection<RosterEntry> getRosterEntries() {
         Collection<RosterEntry> entries = mRoster.getEntries();
-        Log.d(LOGTAG,"The current user has "+entries.size() + " contacts in his roster");
-        return  entries;
+        Log.d(LOGTAG, "The current user has " + entries.size() + " contacts in his roster");
+        return entries;
     }
 
-    public void disconnect ()
-    {
-        Log.d(LOGTAG,"Disconnecting from server "+ mServiceName);
+    public void disconnect() {
+        Log.d(LOGTAG, "Disconnecting from server " + mServiceName);
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mApplicationContext);
-        prefs.edit().putBoolean("xmpp_logged_in",false).commit();
+        prefs.edit().putBoolean("xmpp_logged_in", false).commit();
 
-        if (mConnection != null)
-        {
+        if (mConnection != null) {
             mConnection.disconnect();
         }
     }
 
-    public void sendMessage ( String body ,String toJid)
-    {
-        Log.d(LOGTAG,"Sending message to :"+ toJid);
+    public void sendMessage(String body, String toJid) {
+        Log.d(LOGTAG, "Sending message to :" + toJid);
 
         EntityBareJid jid = null;
 
@@ -325,9 +309,10 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
             message.setBody(body);
             chat.send(message);
             //Add the message to the model
-            ChatMessagesModel.get(mApplicationContext).addMessage(new ChatMessage(body,System.currentTimeMillis(), ChatMessage.Type.SENT,toJid));
+            ChatMessagesModel.get(mApplicationContext).addMessage(new ChatMessage(body, System.currentTimeMillis(), ChatMessage.Type.SENT, toJid));
 
         } catch (SmackException.NotConnectedException e) {
+            Log.d(LOGTAG, "Not Connected Exception");
             e.printStackTrace();
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -336,8 +321,7 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
     }
 
     //Adds contact to the remote roster. We maintain our own local contact list[Roster]
-    public boolean addContactToRoster(String contactJid)
-    {
+    public boolean addContactToRoster(String contactJid) {
         Jid jid;
         try {
             jid = JidCreate.from(contactJid);
@@ -347,7 +331,7 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
         }
 
         try {
-            mRoster.createEntry(jid.asBareJid(),"",null);
+            mRoster.createEntry(jid.asBareJid(), "", null);
         } catch (SmackException.NotLoggedInException e) {
             e.printStackTrace();
             return false;
@@ -367,30 +351,21 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
         return true;
     }
 
-    private Contact.SubscriptionType rosterItemTypeToContactSubscriptionType(RosterPacket.ItemType itemType)
-    {
-        if(itemType == RosterPacket.ItemType.none)
-        {
+    private Contact.SubscriptionType rosterItemTypeToContactSubscriptionType(RosterPacket.ItemType itemType) {
+        if (itemType == RosterPacket.ItemType.none) {
             return Contact.SubscriptionType.NONE;
-        }
-        else if(itemType == RosterPacket.ItemType.from)
-        {
+        } else if (itemType == RosterPacket.ItemType.from) {
             return Contact.SubscriptionType.FROM;
-        }
-        else if(itemType == RosterPacket.ItemType.to)
-        {
+        } else if (itemType == RosterPacket.ItemType.to) {
             return Contact.SubscriptionType.TO;
-        }
-        else if(itemType == RosterPacket.ItemType.both)
-        {
+        } else if (itemType == RosterPacket.ItemType.both) {
             return Contact.SubscriptionType.BOTH;
-        }else
+        } else
             return Contact.SubscriptionType.NONE;
 
     }
 
-    public boolean subscribe (String contact)
-    {
+    public boolean subscribe(String contact) {
         Jid jidTo = null;
         try {
             jidTo = JidCreate.from(contact);
@@ -399,17 +374,14 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
             return false;
         }
         Presence subscribe = new Presence(jidTo, Presence.Type.subscribe);
-        if(sendPresense(subscribe))
-        {
+        if (sendPresense(subscribe)) {
             return true;
-        }else
-        {
+        } else {
             return false;
         }
     }
 
-    public boolean unsubscribe(String contact)
-    {
+    public boolean unsubscribe(String contact) {
         Jid jidTo = null;
         try {
             jidTo = JidCreate.from(contact);
@@ -418,17 +390,14 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
             return false;
         }
         Presence unsubscribe = new Presence(jidTo, Presence.Type.unsubscribe);
-        if(sendPresense(unsubscribe))
-        {
+        if (sendPresense(unsubscribe)) {
             return true;
-        }else
-        {
+        } else {
             return false;
         }
     }
 
-    public boolean unsubscribed(String contact)
-    {
+    public boolean unsubscribed(String contact) {
         Jid jidTo = null;
         try {
             jidTo = JidCreate.from(contact);
@@ -437,18 +406,15 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
             return false;
         }
         Presence unsubscribed = new Presence(jidTo, Presence.Type.unsubscribed);
-        if(sendPresense(unsubscribed))
-        {
+        if (sendPresense(unsubscribed)) {
             return true;
-        }else
-        {
+        } else {
             return false;
         }
 
     }
 
-    public boolean subscribed(String contact)
-    {
+    public boolean subscribed(String contact) {
         Jid jidTo = null;
         try {
             jidTo = JidCreate.from(contact);
@@ -462,8 +428,7 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
         return true;
     }
 
-    public boolean removeRosterEntry(String contactJid)
-    {
+    public boolean removeRosterEntry(String contactJid) {
         Jid jid;
         try {
             jid = JidCreate.from(contactJid);
@@ -497,10 +462,8 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
     }
 
 
-    public boolean sendPresense(Presence presence)
-    {
-        if(mConnection != null)
-        {
+    public boolean sendPresense(Presence presence) {
+        if (mConnection != null) {
             try {
                 mConnection.sendStanza(presence);
             } catch (SmackException.NotConnectedException e) {
@@ -516,38 +479,33 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
     }
 
 
-
-    private void gatherCredentials()
-    {
+    private void gatherCredentials() {
         String jid = PreferenceManager.getDefaultSharedPreferences(mApplicationContext)
-                .getString("xmpp_jid",null);
+                .getString("xmpp_jid", null);
         mPassword = PreferenceManager.getDefaultSharedPreferences(mApplicationContext)
-                .getString("xmpp_password",null);
+                .getString("xmpp_password", null);
 
 
-        if( jid != null)
-        {
+        if (jid != null) {
             mUsername = jid.split("@")[0];
             mServiceName = jid.split("@")[1];
-        }else
-        {
-            mUsername ="";
-            mServiceName="";
+        } else {
+            mUsername = "";
+            mServiceName = "";
         }
     }
 
-    private void notifyUiForConnectionError()
-    {
+    private void notifyUiForConnectionError() {
         Intent i = new Intent(Constants.BroadCastMessages.UI_CONNECTION_ERROR);
         i.setPackage(mApplicationContext.getPackageName());
         mApplicationContext.sendBroadcast(i);
-        Log.d(LOGTAG,"Sent the broadcast for connection Error");
+        Log.d(LOGTAG, "Sent the broadcast for connection Error");
     }
 
     @Override
     public void connected(XMPPConnection connection) {
 
-        Log.d(LOGTAG,"Connected");
+        Log.d(LOGTAG, "Connected");
         mConnectionState = ConnectionState.CONNECTING;
         updateActivitiesOfConnectionStateChange(ConnectionState.CONNECTING);
 
@@ -559,21 +517,23 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
         updateActivitiesOfConnectionStateChange(ConnectionState.ONLINE);
 
 
-        Log.d(LOGTAG,"Authenticated");
+        Log.d(LOGTAG, "Authenticated");
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mApplicationContext);
         prefs.edit()
-                .putBoolean("xmpp_logged_in",true)
+                .putBoolean("xmpp_logged_in", true)
                 .commit();
 
         Intent i = new Intent(Constants.BroadCastMessages.UI_AUTHENTICATED);
         i.setPackage(mApplicationContext.getPackageName());
         mApplicationContext.sendBroadcast(i);
-        Log.d(LOGTAG,"Sent the broadcast that we are authenticated");
+        Log.d(LOGTAG, "Sent the broadcast that we are authenticated");
+
+        sendMessage("background message", "mary.mathew@jabber.at");
     }
 
     @Override
     public void connectionClosed() {
-        Log.d(LOGTAG,"connectionClosed");
+        Log.d(LOGTAG, "connectionClosed");
         notifyUiForConnectionError();
         mConnectionState = ConnectionState.OFFLINE;
         updateActivitiesOfConnectionStateChange(ConnectionState.OFFLINE);
@@ -582,15 +542,14 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
 
     @Override
     public void connectionClosedOnError(Exception e) {
-        Log.d(LOGTAG,"connectionClosedOnError");
+        Log.d(LOGTAG, "connectionClosedOnError");
         notifyUiForConnectionError();
         mConnectionState = ConnectionState.OFFLINE;
         updateActivitiesOfConnectionStateChange(ConnectionState.OFFLINE);
 
-
     }
 
-//    @Override
+    //    @Override
 //    public void reconnectionSuccessful() {
 //        Log.d(LOGTAG,"reconnectionSuccessful");
 //        mConnectionState = ConnectionState.ONLINE;
@@ -599,50 +558,59 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
 //
 //    }
 //
-//    @Override
-//    public void reconnectingIn(int seconds) {
-//        Log.d(LOGTAG,"Reconnecting in " + seconds + "seconds");
-//        mConnectionState = ConnectionState.CONNECTING;
-//        updateActivitiesOfConnectionStateChange(ConnectionState.CONNECTING);
-//
-//
-//    }
-//
-//    @Override
-//    public void reconnectionFailed(Exception e) {
-//        Log.d(LOGTAG,"reconnectionFailed");
-//        mConnectionState = ConnectionState.OFFLINE;
-//        updateActivitiesOfConnectionStateChange(ConnectionState.OFFLINE);
-//
-//
-//    }
+    @Override
+    public void reconnectingIn(int seconds) {
+        Log.d(LOGTAG, "Reconnecting in " + seconds + "seconds");
+        mConnectionState = ConnectionState.CONNECTING;
+        updateActivitiesOfConnectionStateChange(ConnectionState.CONNECTING);
 
-    /** SubscribeListener Overrides */
+
+    }
+
+    //
+    @Override
+    public void reconnectionFailed(Exception e) {
+        Log.d(LOGTAG, "reconnectionFailed");
+        mConnectionState = ConnectionState.OFFLINE;
+        updateActivitiesOfConnectionStateChange(ConnectionState.OFFLINE);
+
+//        try {
+//            connect();
+//        } catch (IOException e1) {
+//            e1.printStackTrace();
+//        } catch (XMPPException e1) {
+//            e1.printStackTrace();
+//        } catch (SmackException e1) {
+//            e1.printStackTrace();
+//        }
+    }
+
+    /**
+     * SubscribeListener Overrides
+     */
     @Override
     public SubscribeAnswer processSubscribe(Jid from, Presence subscribeRequest) {
-        Log.d(LOGTAG,"--------------------processSubscribe Called---------------------.");
-        Log.d(LOGTAG,"JID is :" +from.toString());
-        Log.d(LOGTAG,"Presence type :" +subscribeRequest.getType().toString());
+        Log.d(LOGTAG, "--------------------processSubscribe Called---------------------.");
+        Log.d(LOGTAG, "JID is :" + from.toString());
+        Log.d(LOGTAG, "Presence type :" + subscribeRequest.getType().toString());
 
         /*If somebody is not in our contact list, we should not process their subscription requests
          * We should however process their messages. After whe have exchanged a few messages, can we
          * then subscribe to each other's presence.*/
 
-        if(!ContactModel.get(mApplicationContext).isContactStranger(from.toString()))
-        {
-            Log.d(LOGTAG,"Contact NOT a stranger");
-            Contact mContact =ContactModel.get(mApplicationContext).getContactByJidString(from.toString());
+        if (!ContactModel.get(mApplicationContext).isContactStranger(from.toString())) {
+            Log.d(LOGTAG, "Contact NOT a stranger");
+            Contact mContact = ContactModel.get(mApplicationContext).getContactByJidString(from.toString());
             mContact.setPendingFrom(true);
             ContactModel.get(mApplicationContext).updateContactSubscription(mContact);
-        }else {
+        } else {
             //Create a Chat with type STRANGER
             List<com.example.user.samplechatapp.model.Chat> chats = ChatModel.get(mApplicationContext).getChatsByJid(from.toString());
-            if( chats.size() == 0) {
+            if (chats.size() == 0) {
                 //Only add the chat when it is not already available
-                if(ChatModel.get(mApplicationContext).addChat(new com.example.user.samplechatapp.model.Chat(from.toString(),"Subscription Request",STRANGER,
-                        System.currentTimeMillis(),1)))
-                {
-                    Log.d(LOGTAG,"Chat item for stranger "+from.toString() + " successfully added to chat model");
+                if (ChatModel.get(mApplicationContext).addChat(new com.example.user.samplechatapp.model.Chat(from.toString(), "Subscription Request", STRANGER,
+                        System.currentTimeMillis(), 1))) {
+                    Log.d(LOGTAG, "Chat item for stranger " + from.toString() + " successfully added to chat model");
                 }
             }
         }
@@ -650,23 +618,23 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
         return null;
     }
 
-    /** RosterListener Overrides */
+    /**
+     * RosterListener Overrides
+     */
     @Override
     public void entriesAdded(Collection<Jid> addresses) {
 
-        for( Jid jid : addresses)
-        {
+        for (Jid jid : addresses) {
             RosterEntry entry = mRoster.getEntry(jid.asBareJid());
-            RosterPacket.ItemType itemType= entry.getType();
+            RosterPacket.ItemType itemType = entry.getType();
             boolean isSubscriptionPending = entry.isSubscriptionPending();
 
             //Get all the contacts
             List<String> contacts = ContactModel.get(mApplicationContext).getContactsJidStrings();
 
             //Add new roster entries
-            if( (!contacts.contains(entry.getJid().toString()))
-                    && (itemType!=RosterPacket.ItemType.none))
-            {
+            if ((!contacts.contains(entry.getJid().toString()))
+                    && (itemType != RosterPacket.ItemType.none)) {
                 /* We only add contacts that we don't have already and that don't have a subscription type of none.
                  * none subscriptions add no needed information to our local contact list */
                 //Add it to the db
@@ -674,19 +642,16 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
                 Contact mContact = new Contact(entry.getJid().toString(),
                         rosterItemTypeToContactSubscriptionType(itemType));
                 mContact.setPendingTo(isSubscriptionPending);
-                if(ContactModel.get(mApplicationContext).addContact(mContact))
-                {
-                    Log.d(LOGTAG,"New Contact "+entry.getJid().toString() +"Added successfully");
+                if (ContactModel.get(mApplicationContext).addContact(mContact)) {
+                    Log.d(LOGTAG, "New Contact " + entry.getJid().toString() + "Added successfully");
                     //mAdapter.notifyForUiUpdate();
-                }else
-                {
-                    Log.d(LOGTAG,"Could not add Contact "+entry.getJid().toString());
+                } else {
+                    Log.d(LOGTAG, "Could not add Contact " + entry.getJid().toString());
                 }
             }
 
             //Update already existing entries if necessary
-            if( (contacts.contains(entry.getJid().toString())))
-            {
+            if ((contacts.contains(entry.getJid().toString()))) {
 
                 Contact.SubscriptionType subscriptionType = rosterItemTypeToContactSubscriptionType(itemType);
                 Contact mContact = ContactModel.get(mApplicationContext)
@@ -702,17 +667,15 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
     @Override
     public void entriesUpdated(Collection<Jid> addresses) {
 
-        for( Jid jid : addresses)
-        {
+        for (Jid jid : addresses) {
             RosterEntry entry = mRoster.getEntry(jid.asBareJid());
-            RosterPacket.ItemType itemType= entry.getType();
+            RosterPacket.ItemType itemType = entry.getType();
             boolean isSubscriptionPending = entry.isSubscriptionPending();
 
             List<String> contacts = ContactModel.get(mApplicationContext).getContactsJidStrings();
 
             //Update already existing entries if necessary
-            if( (contacts.contains(entry.getJid().toString())))
-            {
+            if ((contacts.contains(entry.getJid().toString()))) {
 
                 Contact.SubscriptionType subscriptionType = rosterItemTypeToContactSubscriptionType(itemType);
                 Contact mContact = ContactModel.get(mApplicationContext)
@@ -728,14 +691,11 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
     @Override
     public void entriesDeleted(Collection<Jid> addresses) {
 
-        for( Jid jid : addresses)
-        {
-            if(!ContactModel.get(mApplicationContext).isContactStranger(jid.toString()))
-            {
+        for (Jid jid : addresses) {
+            if (!ContactModel.get(mApplicationContext).isContactStranger(jid.toString())) {
                 Contact mContact = ContactModel.get(mApplicationContext).getContactByJidString(jid.toString());
-                if(ContactModel.get(mApplicationContext).deleteContact(mContact))
-                {
-                    Log.d(LOGTAG,"Contact "+jid.toString() + " successfully deleted from the database");
+                if (ContactModel.get(mApplicationContext).deleteContact(mContact)) {
+                    Log.d(LOGTAG, "Contact " + jid.toString() + " successfully deleted from the database");
                 }
             }
         }
@@ -746,25 +706,23 @@ public class SampleChatConnection implements ConnectionListener ,SubscribeListen
     @Override
     public void presenceChanged(Presence presence) {
 
-        Log.d(LOGTAG,"PresenceChanged Called .Presence is :"+presence.toString());
+        Log.d(LOGTAG, "PresenceChanged Called .Presence is :" + presence.toString());
 
-        Presence mPresence =mRoster.getPresence(presence.getFrom().asBareJid());
-        Log.d(LOGTAG,"Best Presence is :"+mPresence.toString());
-        Log.d(LOGTAG,"Type is  :"+mPresence.getType());
+        Presence mPresence = mRoster.getPresence(presence.getFrom().asBareJid());
+        Log.d(LOGTAG, "Best Presence is :" + mPresence.toString());
+        Log.d(LOGTAG, "Type is  :" + mPresence.getType());
         Contact mContact = ContactModel.get(mApplicationContext).getContactByJidString(presence.getFrom().asBareJid().toString());
 
-        if(mPresence.isAvailable() && (!mPresence.isAway()))
-        {
+        if (mPresence.isAvailable() && (!mPresence.isAway())) {
             mContact.setOnlineStatus(true);
-        }else
-        {
+        } else {
             mContact.setOnlineStatus(false);
         }
 
         ContactModel.get(mApplicationContext).updateContactSubscription(mContact);
 
         Intent intent = new Intent(Constants.BroadCastMessages.UI_ONLINE_STATUS_CHANGE);
-        intent.putExtra(Constants.ONLINE_STATUS_CHANGE_CONTACT,presence.getFrom().asBareJid().toString());
+        intent.putExtra(Constants.ONLINE_STATUS_CHANGE_CONTACT, presence.getFrom().asBareJid().toString());
         intent.setPackage(mApplicationContext.getPackageName());
         mApplicationContext.sendBroadcast(intent);
 
